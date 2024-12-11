@@ -134,28 +134,41 @@ class CustomGridEnvironment(gym.Env):
         # All possible moves to check adjacent cells (up, down, left, right)
         neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
-        # Calculate valid neighbors of the goal
-        valid_neighbors = []
+        # Calculate valid neighbors for goal and agent
+        goal_neighbors = []
+        agent_neighbors = []
         for offset in neighbor_offsets:
-            neighbor = [self.goal_pos[0] + offset[0], self.goal_pos[1] + offset[1]]
-            if 0 <= neighbor[0] < self.grid_size and 0 <= neighbor[1] < self.grid_size:
-                valid_neighbors.append(neighbor)
+            goal_neighbor = [self.goal_pos[0] + offset[0], self.goal_pos[1] + offset[1]]
+            agent_neighbor = [self.agent_pos[0] + offset[0], self.agent_pos[1] + offset[1]]
+            if 0 <= goal_neighbor[0] < self.grid_size and 0 <= goal_neighbor[1] < self.grid_size:
+                goal_neighbors.append(goal_neighbor)
+            if 0 <= agent_neighbor[0] < self.grid_size and 0 <= agent_neighbor[1] < self.grid_size:
+                agent_neighbors.append(agent_neighbor)
 
-        # Generate obstacles excluding goal and its neighbors
+        # Generate obstacles excluding goal, agent, and their neighbors
         obstacles = []
         while len(obstacles) < self.num_obstacles:
             pos = [np.random.randint(self.grid_size), np.random.randint(self.grid_size)]
-            if pos not in obstacles and pos != self.agent_pos and pos != self.goal_pos:
-                if pos not in valid_neighbors:  # Exclude immediate neighbors of the goal
-                    obstacles.append(pos)
+            if (
+                    pos not in obstacles
+                    and pos != self.agent_pos
+                    and pos != self.goal_pos
+                    and pos not in goal_neighbors
+                    and pos not in agent_neighbors
+            ):
+                obstacles.append(pos)
 
         # Ensure at least one valid neighbor of the goal remains free
-        # Remove one random obstacle if necessary
-        if all(neighbor not in obstacles for neighbor in valid_neighbors):
-            # Randomly pick one valid neighbor and make sure it's open
-            free_neighbor = valid_neighbors[np.random.randint(len(valid_neighbors))]
-            if free_neighbor in obstacles:
-                obstacles.remove(free_neighbor)
+        if all(neighbor not in obstacles for neighbor in goal_neighbors):
+            free_goal_neighbor = goal_neighbors[np.random.randint(len(goal_neighbors))]
+            if free_goal_neighbor in obstacles:
+                obstacles.remove(free_goal_neighbor)
+
+        # Ensure at least one valid neighbor of the agent remains free
+        if all(neighbor not in obstacles for neighbor in agent_neighbors):
+            free_agent_neighbor = agent_neighbors[np.random.randint(len(agent_neighbors))]
+            if free_agent_neighbor in obstacles:
+                obstacles.remove(free_agent_neighbor)
 
         return obstacles
 
