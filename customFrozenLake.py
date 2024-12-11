@@ -131,11 +131,32 @@ class CustomGridEnvironment(gym.Env):
         return self.agent_pos[0] * self.grid_size + self.agent_pos[1]
 
     def _generate_obstacles(self):
+        # All possible moves to check adjacent cells (up, down, left, right)
+        neighbor_offsets = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+        # Calculate valid neighbors of the goal
+        valid_neighbors = []
+        for offset in neighbor_offsets:
+            neighbor = [self.goal_pos[0] + offset[0], self.goal_pos[1] + offset[1]]
+            if 0 <= neighbor[0] < self.grid_size and 0 <= neighbor[1] < self.grid_size:
+                valid_neighbors.append(neighbor)
+
+        # Generate obstacles excluding goal and its neighbors
         obstacles = []
         while len(obstacles) < self.num_obstacles:
             pos = [np.random.randint(self.grid_size), np.random.randint(self.grid_size)]
             if pos not in obstacles and pos != self.agent_pos and pos != self.goal_pos:
-                obstacles.append(pos)
+                if pos not in valid_neighbors:  # Exclude immediate neighbors of the goal
+                    obstacles.append(pos)
+
+        # Ensure at least one valid neighbor of the goal remains free
+        # Remove one random obstacle if necessary
+        if all(neighbor not in obstacles for neighbor in valid_neighbors):
+            # Randomly pick one valid neighbor and make sure it's open
+            free_neighbor = valid_neighbors[np.random.randint(len(valid_neighbors))]
+            if free_neighbor in obstacles:
+                obstacles.remove(free_neighbor)
+
         return obstacles
 
 
